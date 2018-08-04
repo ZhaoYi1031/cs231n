@@ -39,12 +39,7 @@ class LinearClassifier(object):
     for it in range(num_iters):
       X_batch = None
       y_batch = None
-      #print(dim*batch_size) #print(X.flatten().shape)
-      #X_batch = np.reshape(np.random.choice(X.flatten(), int(batch_size*dim), replace=True), (-1, dim)) #print(X_batch)
-      #y_batch = np.random.choice(y, batch_size, replace=True) #print(y_batch)
-      sample_index = np.random.choice(num_train, batch_size, replace=True) #从[0,num_train]中选取batch_size个数，replace为True代表里面的数可以重复
-      X_batch = X[sample_index, :]
-      y_batch = y[sample_index]
+      
       #########################################################################
       # TODO:                                                                 #
       # Sample batch_size elements from the training data and their           #
@@ -56,13 +51,19 @@ class LinearClassifier(object):
       # Hint: Use np.random.choice to generate indices. Sampling with         #
       # replacement is faster than sampling without replacement.              #
       #########################################################################
-      pass
+      #print(dim*batch_size) #print(X.flatten().shape)
+      #X_batch = np.reshape(np.random.choice(X.flatten(), int(batch_size*dim), replace=True), (-1, dim)) #print(X_batch)
+      #y_batch = np.random.choice(y, batch_size, replace=True) #print(y_batch)
+      sample_index = np.random.choice(num_train, batch_size, replace=True) #从[0,num_train]中选取batch_size个数，replace为True代表里面的数可以重复
+      X_batch = X[sample_index, :]
+      y_batch = y[sample_index]
       #########################################################################
       #                       END OF YOUR CODE                                #
       #########################################################################
 
       # evaluate loss and gradient
       loss, grad = self.loss(X_batch, y_batch, reg)
+      #print(grad)
       loss_history.append(loss)
 
       # perform parameter update
@@ -96,17 +97,12 @@ class LinearClassifier(object):
     """
     # 预测出得分最高的那个label
     y_pred = np.zeros(X.shape[0]) 
-    #print(y_pred.shape)
     ###########################################################################
     # TODO:                                                                   #
     # Implement this method. Store the predicted labels in y_pred.            #
     ###########################################################################
-    #print("!!!!!!!!!!!")
     scores = X.dot(self.W) #shape: (1000, 10) 1000个例子，每个class对应的得分 #计算出所有标签的得分
-    #print(scores)
-    #print(scores.shape)
     y_pred = np.argmax(scores, axis = 1)
-    #print(y_pred)
     ###########################################################################
     #                           END OF YOUR CODE                              #
     ###########################################################################
@@ -130,7 +126,7 @@ class LinearClassifier(object):
     pass
 
 
-class LinearSVM(LinearClassifier):
+class LinearSVM(LinearClassifier): #继承了父类的LinearClassifier，然后有些函数需要重写
   """ A subclass that uses the Multiclass SVM loss function """
 
   def loss(self, X_batch, y_batch, reg):

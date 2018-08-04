@@ -11,7 +11,7 @@ def svm_loss_naive(W, X, y, reg):
   of N examples.
 
   Inputs:
-  - W: A numpy array of shape (D, C) containing weights.
+  - W: A numpy array of shape (D, C) containing weights. #10*3073维
   - X: A numpy array of shape (N, D) containing a minibatch of data.
   - y: A numpy array of shape (N,) containing training labels; y[i] = c means
     that X[i] has label c, where 0 <= c < C.
@@ -47,7 +47,7 @@ def svm_loss_naive(W, X, y, reg):
   dW += reg*W
 
   # Add regularization to the loss.
-  loss += reg * np.sum(W * W) #加上正则项的惩罚，在这里我们采用的是L2范式，L2范式通过对每一个参数进行平方后进行相加，通过这样的方式来抑制参数不要太大
+  loss += 0.5*reg * np.sum(W * W) #加上正则项的惩罚，在这里我们采用的是L2范式，L2范式通过对每一个参数进行平方后进行相加，通过这样的方式来抑制参数不要太大
   # 有些地方好像写的是0.5*reg*np.sum(W*W) #我看有个知乎评论是这样的：这个应该是看regulation loss 如何定义，通常加入0.5是为了计算regulation loss的梯度时系数变为1
 
   #############################################################################
@@ -73,55 +73,25 @@ def svm_loss_vectorized(W, X, y, reg):
   y: 500,
   reg: 常数，0.000005
   """
-  num_classes = W.shape[1]
-  num_train = X.shape[0]
-  loss = 0.0
-  dW = np.zeros(W.shape) # initialize the gradient as zero
-  #print('--------------------------')
-  #print(X.shape)
-  #print(W.shape)
-  #print(y.shape)
-  #print(X.dot(W))
-  #print(y)
-  #print('--------------------------')
-  scores = X.dot(W) # shape: 500*10, 即每一个样本对于每一个种类都有一个得分
-  correct_class_scores = scores[np.arange(num_train), y] #shape: 500,
-  #print(correct_class_scores.shape) 
-  #print(correct_class_scores) 
-  correct_class_scores = np.reshape(correct_class_scores, (-1, 1))
-  #print(correct_class_scores.shape) 
-  #print(correct_class_scores)
-  #print(scores.shape)
-  #print("**************************")
-  #print(y.shape)
-  #print("~~~~~~~~~~~~~~~~~~~~~~~~~~")
-  margin = scores - correct_class_scores + 1 #(500,10)
-  #print(margin)
-  #print("&&&&&&&&&&&&&&&&&&&&&&&&&&")
-  margin[np.arange(num_train), y] = 0 #把正确标签的偏差值置为0
-  #print(margin)
-  #print("@@@@@@@@@@@@@@@@@@@@@@@@@@")
-  margin[margin < 0] = 0
-  loss = np.sum(margin)
-  loss /= num_train
-  loss += reg * np.sum(W * W)
-  
-  margin[margin>0] = 1
-  one_num_per_line = np.sum(margin, axis = 1) #统计每一行里面的1的和（其实也就是1的个数）
-  #print(one_num_per_line)
-  #print(one_num_per_line.shape)
-  margin[np.arange(num_train), y] = -one_num_per_line
-  dW = X.T.dot(margin)
-  dW /= num_train
-  dW += reg*W
-  
-  
+
   #############################################################################
   # TODO:                                                                     #
   # Implement a vectorized version of the structured SVM loss, storing the    #
   # result in loss.                                                           #
   #############################################################################
-  
+  num_classes = W.shape[1]
+  num_train = X.shape[0]
+  loss = 0.0
+  dW = np.zeros(W.shape) # initialize the gradient as zero
+  scores = X.dot(W) # shape: 500*10, 即每一个样本对于每一个种类都有一个得分
+  correct_class_scores = scores[np.arange(num_train), y] #shape: 500,
+  correct_class_scores = np.reshape(correct_class_scores, (-1, 1))
+  margin = scores - correct_class_scores + 1 #(500,10)
+  margin[np.arange(num_train), y] = 0 #把正确标签的偏差值置为0
+  margin[margin < 0] = 0
+  loss = np.sum(margin)
+  loss /= num_train
+  loss += reg * np.sum(W * W)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -136,7 +106,12 @@ def svm_loss_vectorized(W, X, y, reg):
   # to reuse some of the intermediate values that you used to compute the     #
   # loss.                                                                     #
   #############################################################################
-  pass
+  margin[margin>0] = 1
+  one_num_per_line = np.sum(margin, axis = 1) #统计每一行里面的1的和（其实也就是1的个数）
+  margin[np.arange(num_train), y] = -one_num_per_line
+  dW = X.T.dot(margin)
+  dW /= num_train
+  dW += reg*W
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
