@@ -22,6 +22,7 @@ def softmax_loss_naive(W, X, y, reg):
   # Initialize the loss and gradient to zero.
   loss = 0.0
   dW = np.zeros_like(W)
+  
 
   #############################################################################
   # TODO: Compute the softmax loss and its gradient using explicit loops.     #
@@ -29,13 +30,59 @@ def softmax_loss_naive(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  y_values = X.dot(W) #(N, C)
+  n = X.shape[0] #train examples
+  m = W.shape[1] #number of labels
+  loss = 0
+  for i in range(n):
+      scores = y_values[i,:] #scores里面存的是第i个数据的所有标签的评分值，其shape是(C,)
+      scores = scores - max(scores) #trick，防止exp过大而爆炸
+      tot = 0
+      for j in range(m):
+            tot += np.exp(scores[j])
+      scores_y_i = np.exp(scores[y[i]])
+      a_i =  scores_y_i / tot
+      loss += -np.log(a_i)
+      for j in range(m):
+          a_j = np.exp(scores[j]) / tot
+          if (j == y[i]):
+                dW[:, j] += -X[i] * (1-a_j)
+          else:
+                dW[:, j] += X[i] * a_j
+      
+#       print(i, "---", np.log(p))
+    
+  loss /= n #不要忘记除掉训练集的个数
+  loss += 0.5 * reg * np.sum(W * W)
+  dW /= n
+  dW += reg*W
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
 
   return loss, dW
+  '''
 
+  loss=0.0
+  dW=np.zeros_like(W)
+  num_classes=W.shape[1]
+  num_train=X.shape[0]
+  for i in range(num_train):
+        scores=X[i].dot(W)
+        shift_scores=scores-max(scores)
+        loss_i=-shift_scores[y[i]]+np.log(sum(np.exp(shift_scores)))
+        loss+=loss_i
+        for j in range(num_classes):
+            softmax_out=np.exp(shift_scores[j])/sum(np.exp(shift_scores))
+            if j==y[i]:
+                dW[:,j]+=(-1+softmax_out)*X[i]
+            else:
+                dW[:,j]+=softmax_out*X[i]
+  loss/=num_train
+  loss+=0.5*reg*np.sum(W*W)
+  dW=dW/num_train+reg*W
+  return loss,dW
+  '''
 
 def softmax_loss_vectorized(W, X, y, reg):
   """
@@ -46,6 +93,35 @@ def softmax_loss_vectorized(W, X, y, reg):
   # Initialize the loss and gradient to zero.
   loss = 0.0
   dW = np.zeros_like(W)
+    
+  n = X.shape[0]
+  m = W.shape[1] #number of labels
+    
+  scores = X.dot(W)
+  scores = scores  - np.max(scores).reshape((-1,1)) #trick，防止exp爆炸
+  scores = np.exp(scores)
+  
+  scores_sum = np.sum(scores, axis = 1)
+  #scores_y = scores[y]
+  line_id = 0
+  tot = 0
+  for i in y:
+    scores_y = scores[line_id][i]
+#     print(scores_y, scores_sum[line_id])
+    tot += -np.log(scores_y / scores_sum[line_id])
+    for j in range(m):
+        if i == j:
+            dW[:,j] += (scores[line_id][j] / scores_sum[line_id] - 1)  * X[line_id]
+        else:
+            dW[:,j] += scores[line_id][j] / scores_sum[line_id] * X[line_id]
+    line_id = line_id +1 
+    
+  loss = tot/n
+  loss += 0.5 * reg * np.sum(W*W)
+    
+  dW /= n
+  dW += reg*W
+  #print(dW)
 
   #############################################################################
   # TODO: Compute the softmax loss and its gradient using no explicit loops.  #
@@ -60,3 +136,20 @@ def softmax_loss_vectorized(W, X, y, reg):
 
   return loss, dW
 
+'''
+def softmax_loss_vectorized(W,X,y,reg):
+    loss=0.0
+    dW=np.zeros_like(W)
+    num_classes=W.shape[1]
+    num_train=X.shape[0]
+    scores=X.dot(W)
+    shift_scores=scores-np.max(scores,axis=1).reshape(-1,1) #先转成(N,1) python广播机制 
+    softmax_output=np.exp(shift_scores)/np.sum(np.exp(shift_scores),axis=1).reshape((-1,1))
+    loss=-np.sum(np.log(softmax_output[range(num_train),list(y)])) #softmax_output[range(num_train),list(y)]计算的是正确分类y_i的损 loss/=num_train
+    loss+=0.5*reg*np.sum(W*W)
+    dS=softmax_output.copy()
+    dS[range(num_train),list(y)]+=-1
+    dW=(X.T).dot(dS)
+    dW=dW/num_train+reg*W
+    return loss,dW
+'''

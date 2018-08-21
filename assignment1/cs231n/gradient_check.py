@@ -108,6 +108,7 @@ def grad_check_sparse(f, x, analytic_grad, num_checks=10, h=1e-5):
   sample a few random elements and only return numerical
   in this dimensions.
   """
+  # 数值计算梯度的方法：随机选取一些元素，然后用该点的割线的斜率作为我们的数值梯度（numerical gradient)，即f(x+delta(h))-f(x-delta(h))/2h，其中h->0
 
   for i in range(num_checks):
     ix = tuple([randrange(m) for m in x.shape])
