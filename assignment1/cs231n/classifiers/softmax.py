@@ -23,7 +23,6 @@ def softmax_loss_naive(W, X, y, reg):
   loss = 0.0
   dW = np.zeros_like(W)
   
-
   #############################################################################
   # TODO: Compute the softmax loss and its gradient using explicit loops.     #
   # Store the loss in loss and the gradient in dW. If you are not careful     #
@@ -49,8 +48,6 @@ def softmax_loss_naive(W, X, y, reg):
                 dW[:, j] += -X[i] * (1-a_j)
           else:
                 dW[:, j] += X[i] * a_j
-      
-#       print(i, "---", np.log(p))
     
   loss /= n #不要忘记除掉训练集的个数
   loss += 0.5 * reg * np.sum(W * W)
@@ -93,7 +90,14 @@ def softmax_loss_vectorized(W, X, y, reg):
   # Initialize the loss and gradient to zero.
   loss = 0.0
   dW = np.zeros_like(W)
-    
+  
+
+  #############################################################################
+  # TODO: Compute the softmax loss and its gradient using no explicit loops.  #
+  # Store the loss in loss and the gradient in dW. If you are not careful     #
+  # here, it is easy to run into numeric instability. Don't forget the        #
+  # regularization!                                                           #
+  #############################################################################
   n = X.shape[0]
   m = W.shape[1] #number of labels
     
@@ -102,12 +106,10 @@ def softmax_loss_vectorized(W, X, y, reg):
   scores = np.exp(scores)
   
   scores_sum = np.sum(scores, axis = 1)
-  #scores_y = scores[y]
   line_id = 0
   tot = 0
   for i in y:
     scores_y = scores[line_id][i]
-#     print(scores_y, scores_sum[line_id])
     tot += -np.log(scores_y / scores_sum[line_id])
     for j in range(m):
         if i == j:
@@ -121,15 +123,6 @@ def softmax_loss_vectorized(W, X, y, reg):
     
   dW /= n
   dW += reg*W
-  #print(dW)
-
-  #############################################################################
-  # TODO: Compute the softmax loss and its gradient using no explicit loops.  #
-  # Store the loss in loss and the gradient in dW. If you are not careful     #
-  # here, it is easy to run into numeric instability. Don't forget the        #
-  # regularization!                                                           #
-  #############################################################################
-  pass
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
