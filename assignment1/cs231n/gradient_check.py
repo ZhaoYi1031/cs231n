@@ -10,10 +10,6 @@ def eval_numerical_gradient(f, x, verbose=True, h=0.00001):
   - x is the point (numpy array) to evaluate the gradient at
   """ 
   fx = f(x) # evaluate function value at original point
-#   print("&&&&&&&&")
-#   print(x)
-#   print(fx)
-#   print("########")
   grad = np.zeros_like(x)
   # iterate over all indexes in x
   it = np.nditer(x, flags=['multi_index'], op_flags=['readwrite'])
@@ -24,7 +20,6 @@ def eval_numerical_gradient(f, x, verbose=True, h=0.00001):
     oldval = x[ix]
     x[ix] = oldval + h # increment by h
     fxph = f(x) # evalute f(x + h)
-#     print("x=",x,"    f(x)=",fxph)
     x[ix] = oldval - h
     fxmh = f(x) # evaluate f(x - h)
     x[ix] = oldval # restore
@@ -34,7 +29,6 @@ def eval_numerical_gradient(f, x, verbose=True, h=0.00001):
     if verbose:
       print(ix, grad[ix])
     it.iternext() # step to next dimension
-#     print("cnt=", grad[ix])
   return grad
 
 

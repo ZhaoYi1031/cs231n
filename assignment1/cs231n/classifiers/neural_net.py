@@ -84,15 +84,12 @@ class TwoLayerNet(object):
     # shape (N, C).                                                             #
     #############################################################################
     scores_fully_1 = X.dot(W1) + b1 #(N,D) * (D,H) = (N,H)
-    #print("scores_fully_1:",scores_fully_1)
     scores_relu = np.maximum(scores_fully_1, 0) #(N,H)
-    #print("scores_relu:",scores_relu)
     scores_fully_2 = scores_relu.dot(W2) + b2 #(N,H) * (H,C) = (N,C)
-    #print("scores_fully_2:",scores_fully_2)
     
     scores = scores_fully_2 
     #!!!一直以来我以为那个scores是在softmax层之后的得分，实则不然，我们的softmax层是来求loss的。注意scores和loss的区别
-    #喂，softmax是一个求一个求损失的函数，不是激活层，艹能不能搞清楚！
+    #喂，softmax是一个求一个求损失的函数，不是激活层，能不能搞清楚！
         
     
     #############################################################################
@@ -114,26 +111,22 @@ class TwoLayerNet(object):
     
     #下面就是计算loss的过程了
     loss = 0 #要初始化一下，不然会出现"TypeError: unsupported operand type(s) for +: 'NoneType' and 'float'"的错误
-    #print(y)
-    scores -= np.max(scores) #实际上这个会降低那么一点点误差精度 1e-7级别
+    scores -= np.max(scores) #实际上这个会降低那么一点点误差精度 1e-7级别 #但是到后面跑验证集的时候不加就会指数爆炸
     
-    ppp = np.zeros(N)
-    
+    #这边还没向量化，要向量化的就得一起算exp，然后一起除，然后np.mean，注意用np.reshape
+#     scores -= np.max(scores)
+#     scores = np.exp(scores)
+#     p_yi = scores[range(X.shape[0]), y]
+#     sum_p = np.sum(scores, axis=1).reshape(X.shape[0], 1)
+#     p = scores/sum_p
+#     loss = np.mean(-np.log(p_yi/sum_p))
+#     loss += 0.5 * reg * (np.sum(W1*W1) + np.sum(W2*W2))
     for i in range(N): #对于每一个数据去操作
-        #print("i=", i)
-        
         loss_exp = np.exp(scores[i]) #先把所有的求一个幂指
-        #print(loss_exp)
         tot = np.sum(loss_exp)
-        #print("tot=", tot)
-        #print("val=", np.exp(scores[i][y[i]]) / tot)
-        #print("val=", -np.log(np.exp(scores[i][y[i]]) / tot))
         if (tot != 0):
             loss = loss - np.log((np.exp(scores[i][y[i]])) / tot)
-#         ppp[i] = - np.log((np.exp(scores[i][y[i]])) / tot)
-    #np.mean(ppp)
-    loss = loss/N + 0.5*reg*(np.sum(W1 * W1) + np.sum(W2 * W2)) #!!!有个除n，被坑了好久 ###这里没有0.5*reg, 否则误差是0.01有点大
-#     print("loss=", loss)
+    loss = loss/N + reg*(np.sum(W1 * W1) + np.sum(W2 * W2)) #!!!有个除n，被坑了好久 ###这里没有0.5*reg, 否则误差是0.01有点大
     #print("loss = ", loss)
     
     #############################################################################
@@ -151,6 +144,11 @@ class TwoLayerNet(object):
     #主要难点还是用到之前的求softmax的导数的过程没注意梯度下降的主要思路就是
     #先计算一下W2的梯度好了
     
+    #计算L对这个softmax的导数也没有向量化
+#     num_classes = W2.shape[1]
+#     binary = np.zeros((N, num_classes))
+#     binary[range(binary.shape[0]), y] = 1
+#     dscores = p - binary
     dL_df = np.zeros((N,C))
     for i in range(N):
         loss_exp = np.exp(scores[i])
@@ -159,21 +157,16 @@ class TwoLayerNet(object):
             dL_df[i,j] = loss_exp[j] / tot
             if (j == y[i]):
                 dL_df[i,j] = dL_df[i,j] - 1
-#     dL_df /= N ###!!!为什么这个也要除n???
-#     print(dL_df)
-#     print("------------------------------------------------------------------")
    
     dW2 = np.dot(scores_relu.T, dL_df)
     
     grads['W2'] = dW2 
     grads['W2'] /= N
-    grads['W2'] += reg * W2 
+    grads['W2'] += 2 * reg * W2 
     
     db2 = np.sum(dL_df, axis=0) #这个我其实有点懵!!! axis=0是求每一列的和，所以就是把(N,C)压缩到了(C,)
     grads['b2'] = db2
     grads['b2'] /= N
-#     print(grads['W2'])
-#     print("------------------------------------------------------------------")
     
     dr_dfc1 = np.zeros(scores_relu.shape)
     dW1_1 = dL_df.dot(W2.T) #(N,C) * (C,H) = (N,H)
@@ -181,13 +174,14 @@ class TwoLayerNet(object):
         for j in range(dW1_1.shape[1]):
             if (scores_relu[i][j] == 0):
                 dW1_1[i][j] = 0
+                #和下面的矩阵*(数字乘)是等价的!!!
 #                 dr_dfc1[i][j] = 1
 #     dW1_1 = dW1_1*dr_dfc1
     
     dW1 = X.T.dot(dW1_1) #(D,N) * (N,H) = (D,H)
     grads['W1'] = dW1 
     grads['W1'] /= N
-    grads['W1'] += reg * W1
+    grads['W1'] += 2 * reg * W1
         
      
     db1 = np.sum(dW1_1, axis=0)
@@ -229,10 +223,6 @@ class TwoLayerNet(object):
     train_acc_history = []
     val_acc_history = []
 
-#     print(num_train)
-#     print(batch_size)
-#     print(iterations_per_epoch)
-#     print(num_iters)
     for it in range(num_iters):
       X_batch = None
       y_batch = None
@@ -242,12 +232,9 @@ class TwoLayerNet(object):
       # them in X_batch and y_batch respectively.                             #
       #########################################################################
       
-      idxs = np.random.choice(num_train, batch_size, replace=True) #这个的num_train为5，而batch_size为100，倘若我们
-#       print(idxs)
+      idxs = np.random.choice(num_train, batch_size, replace=True) #这个的num_train为5，而batch_size为100，倘若我们用replace=False根本写不了
       X_batch = X[idxs]
-#       print(X_batch)
       y_batch = y[idxs]
-#       print(y_batch)
       
     
       #########################################################################
@@ -325,19 +312,18 @@ class TwoLayerNet(object):
     y_pred = np.zeros(N)
     scores = np.maximum(X.dot(self.params['W1']) + self.params['b1'], 0).dot(self.params['W2']) + self.params['b2']
     
-#     print(scores.shape)
-#     print(C)
     
-    for i in range(N):
-        score_max = -1e9
-        pos = -1
-        for j in range(C):
-            if (scores[i][j] > score_max):
-                score_max = scores[i][j]
-                pos = j
-            y_pred[i] = pos
-#     print(y_pred)     
-#     print("CNMMMMMMMMMMMMMMMMMMMMMMMMM")
+#     for i in range(N):
+#         score_max = -1e9
+#         pos = -1
+#         for j in range(C):
+#             if (scores[i][j] > score_max):
+#                 score_max = scores[i][j]
+#                 pos = j
+#             y_pred[i] = pos
+
+    y_pred = np.argmax(scores, axis = 1)
+            
     ###########################################################################
     #                              END OF YOUR CODE                           #
     ###########################################################################
