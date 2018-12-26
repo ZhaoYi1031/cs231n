@@ -195,15 +195,17 @@ class CaptioningRNN(object):
         
         #(3)使用或者是一个vanilla RNN或者LSTM（取决于self.cell_type)来处理输入单词vector的序列并且产生所有时间戳的隐藏层状态。产生一个array，形状是（N，T，H）
         if self.cell_type == 'rnn':
-            rnn_output, rnn_cache = rnn_forward(embedded_captions, h0, Wx, Wh, b)
+            c_output, c_cache = rnn_forward(embedded_captions, h0, Wx, Wh, b)
         else:
-            lstm_output, lstm_cache = lstm_forward(embedded_captions, h0, Wx, Wh, b)
+            c_output, c_cache = lstm_forward(embedded_captions, h0, Wx, Wh, b)
+            
+        # 20181225-update: c_output是rnn或者lstm的output
             
         #print("rnn_output = ", rnn_output)
         
         #(4) 使用一个临时的线性层来计算词典上的scores在每一个时间戳使用隐藏层状态，
         
-        scores, cache_scores = temporal_affine_forward(rnn_output, W_vocab, b_vocab)
+        scores, cache_scores = temporal_affine_forward(c_output, W_vocab, b_vocab)
         
         #(5) 使用暂时的softmax层来计算loss使用captions_out, 忽略output单词是NULL的这种
         loss, dsoftmax = temporal_softmax_loss(scores, captions_out, mask, False)
@@ -214,10 +216,10 @@ class CaptioningRNN(object):
         grads['W_vocab'], grads['b_vocab'] = dW_vocab, db_vocab
         
         if self.cell_type == 'rnn':
-            dx_cell, dh0, dWx_rnn, dWh_rnn, db_rnn = rnn_backward(dx_score, rnn_cache)
+            dx_cell, dh0, dWx_rnn, dWh_rnn, db_rnn = rnn_backward(dx_score, c_cache)
             grads['Wx'], grads['Wh'], grads['b'] = dWx_rnn, dWh_rnn, db_rnn
         else:
-            dx_cell, dh0, dWx_lstm, dWh_lstm, db_lstm = lstm_backward(dx_score, rnn_cache)
+            dx_cell, dh0, dWx_lstm, dWh_lstm, db_lstm = lstm_backward(dx_score, c_cache)
             grads['Wx'], grads['Wh'], grads['b'] = dWx_lstm, dWh_lstm, db_lstm
         
         dW_embedded = word_embedding_backward(dx_cell, cache_embedded_captions)
@@ -317,7 +319,8 @@ class CaptioningRNN(object):
             #current word to get the next hidden state.      
             if self.cell_type=='rnn':
                 current_h, _ = rnn_step_forward(embedded_words, current_h, Wx, Wh, b)
-                
+            else:
+                current_h, current_c, _ = lstm_step_forward(embedded_words, current_h, current_c, Wx, Wh, b)
             scores = current_h.dot(W_vocab) + b_vocab
             
         #    Select the word with the highest score as the next word, writing it #
